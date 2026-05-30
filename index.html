@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>展示会 進行危険度 判定盤</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+:root{
+  --bg:#0c0e10;--panel:#15181b;--panel-2:#1c2024;--line:#2a2f34;
+  --ink:#e9e6dd;--ink-dim:#8b918f;
+  --mono:'Space Mono',ui-monospace,monospace;
+  --sans:'Zen Kaku Gothic New',-apple-system,'Hiragino Kaku Gothic ProN',Meiryo,sans-serif;
+  --blue:#3da3ff;--yellow:#f2c33d;--orange:#ff8c2e;--red:#ff3b3b;--green-ok:#46d18a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--sans)}
+body{min-height:100vh;padding:28px 18px 60px;
+  background-image:
+    radial-gradient(1100px 600px at 80% -10%, rgba(61,163,255,.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255,59,59,.05), transparent 55%);
+  background-attachment:fixed;}
+.wrap{max-width:880px;margin:0 auto}
+
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:26px;flex-wrap:wrap}
+.head h1{font-weight:900;font-size:clamp(22px,4.2vw,34px);letter-spacing:.04em;line-height:1.15}
+.head h1 .sub{display:block;font-size:11px;font-weight:500;letter-spacing:.32em;color:var(--ink-dim);font-family:var(--mono);margin-bottom:6px}
+.tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;padding:7px 14px;white-space:nowrap}
+
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 24px 60px -40px rgba(0,0,0,.9)}
+.field-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--ink-dim);text-transform:uppercase;margin-bottom:8px;display:block}
+.field-note{font-family:var(--sans);letter-spacing:0;text-transform:none;color:#5a605f}
+.grid-in{display:grid;grid-template-columns:1fr 200px 200px;gap:18px;align-items:end}
+@media(max-width:680px){.grid-in{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column}
+input[type=text],input[type=date]{
+  background:#0e1113;border:1px solid var(--line);border-radius:9px;color:var(--ink);
+  font-size:15px;padding:13px 14px;transition:.18s;width:100%;font-family:var(--sans);}
+input[type=date]{font-family:var(--mono);color-scheme:dark}
+input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(61,163,255,.14)}
+input::placeholder{color:#565c5f}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:18px}
+button{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.06em;cursor:pointer;border:none;border-radius:9px;padding:14px 26px;transition:.16s;white-space:nowrap}
+.btn-primary{background:var(--blue);color:#04121f}
+.btn-primary:hover{filter:brightness(1.08)}
+.status{margin-top:14px;min-height:18px;font-family:var(--mono);font-size:12px;color:var(--red);letter-spacing:.04em}
+.hint{font-size:12px;color:var(--ink-dim);margin-top:12px;line-height:1.7}
+
+.result{margin-top:24px;display:none;animation:rise .5s cubic-bezier(.2,.8,.2,1)}
+.result.show{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.block-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--ink-dim);margin-bottom:14px}
+.section{margin-top:30px;padding-top:26px;border-top:1px solid var(--line)}
+
+.result-grid{display:grid;grid-template-columns:auto 1fr;gap:24px}
+@media(max-width:600px){.result-grid{grid-template-columns:1fr}}
+
+.tower{background:#080a0b;border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:13px;align-items:stretch;justify-self:start}
+.lamp-row{display:flex;align-items:center;gap:14px}
+.lamp{width:42px;height:42px;border-radius:50%;background:#15181b;border:1px solid #23282c;flex:0 0 auto;transition:.3s}
+.lamp-label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#4a504f;white-space:nowrap}
+.lamp-label.act{color:var(--ink)}
+.lamp.on.blue{background:var(--blue);box-shadow:0 0 22px 2px rgba(61,163,255,.7)}
+.lamp.on.yellow{background:var(--yellow);box-shadow:0 0 22px 2px rgba(242,195,61,.7)}
+.lamp.on.orange{background:var(--orange);box-shadow:0 0 22px 2px rgba(255,140,46,.7)}
+.lamp.on.red{background:var(--red);box-shadow:0 0 22px 2px rgba(255,59,59,.75);animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 22px 2px rgba(255,59,59,.5)}50%{box-shadow:0 0 30px 6px rgba(255,59,59,.85)}}
+
+.verdict{display:flex;flex-direction:column;justify-content:center}
+.verdict .phase{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--ink-dim);margin-bottom:6px}
+.verdict .headline{font-weight:900;font-size:clamp(26px,5vw,40px);line-height:1.1;letter-spacing:.02em}
+.verdict .action{font-size:15px;line-height:1.7;margin-top:14px;color:var(--ink);background:#0e1113;border-left:3px solid;padding:13px 16px;border-radius:0 8px 8px 0}
+.meta{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:12px;letter-spacing:.04em;background:#0e1113;border:1px solid var(--line);border-radius:8px;padding:9px 13px}
+.chip b{color:var(--ink);font-weight:700}.chip span{color:var(--ink-dim)}
+
+.timeline{margin-top:26px}
+.tl-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--ink-dim);margin-bottom:12px}
+.bar{position:relative;display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.seg{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;color:#06090a;font-weight:700}
+.seg.s-blue{background:var(--blue)}.seg.s-yellow{background:var(--yellow)}.seg.s-orange{background:var(--orange)}.seg.s-red{background:var(--red)}.seg.s-open{background:#5a6166}
+.marker{position:absolute;top:-6px;bottom:-6px;width:2px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.8);z-index:3}
+.marker::after{content:"基準日";position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:#fff;white-space:nowrap}
+.tl-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--ink-dim);margin-top:7px}
+
+/* ===== fee ===== */
+.fee-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.fee-badge{font-weight:900;font-size:clamp(20px,3.6vw,28px);letter-spacing:.02em;border:2px solid;border-radius:10px;padding:10px 18px}
+.fee-line{font-family:var(--mono);font-size:12px;color:var(--ink-dim);letter-spacing:.03em;line-height:1.9}
+.fee-line b{color:var(--ink);font-weight:700}
+.bands{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:600px){.bands{grid-template-columns:repeat(2,1fr)}}
+.band{background:#0e1113;border:1px solid var(--line);border-radius:11px;padding:14px 13px;opacity:.5;transition:.25s}
+.band.act{opacity:1}
+.band-pct{font-family:var(--mono);font-weight:700;font-size:20px;line-height:1}
+.band-range{font-family:var(--mono);font-size:13px;color:var(--ink);margin-top:9px;letter-spacing:.02em}
+.band-desc{font-size:11px;color:var(--ink-dim);margin-top:6px;line-height:1.5}
+.band.b-blue.act{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue),0 0 20px -6px var(--blue)} .band.b-blue .band-pct{color:var(--blue)}
+.band.b-yellow.act{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow),0 0 20px -6px var(--yellow)} .band.b-yellow .band-pct{color:var(--yellow)}
+.band.b-orange.act{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),0 0 20px -6px var(--orange)} .band.b-orange .band-pct{color:var(--orange)}
+.band.b-red.act{border-color:var(--red);box-shadow:0 0 0 1px var(--red),0 0 20px -6px var(--red)} .band.b-red .band-pct{color:var(--red);font-size:15px}
+
+.disclaim{font-size:11px;color:#5a605f;margin-top:26px;line-height:1.7;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1><span class="sub">EXHIBITION RISK CHECKER</span>展示会 進行危険度 判定盤</h1>
+    <div class="tag">AKASAKO DESIGN</div>
+  </div>
+
+  <div class="panel">
+    <div class="grid-in">
+      <div class="col">
+        <label class="field-label">展示会名 / URL（任意・記録用）</label>
+        <input type="text" id="src" placeholder="◯◯展 2026 / https://…">
+      </div>
+      <div class="col">
+        <label class="field-label">開催初日</label>
+        <input type="date" id="dateIn">
+      </div>
+      <div class="col">
+        <label class="field-label">判定基準日 <span class="field-note">／未入力=今日</span></label>
+        <input type="date" id="baseIn">
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn-primary" id="goBtn">判定する</button>
+    </div>
+    <div class="status" id="status"></div>
+    <p class="hint">開催初日を入れて「判定する」を押すだけ。進行フェーズ（受注可否）と割増フィーの両方を自動判定します。判定基準日に依頼確定日などを入れると、その日付を起点に計算します。インターネット接続なしで動くので、このファイルを共有すれば誰でもそのまま使えます。</p>
+  </div>
+
+  <div class="result" id="result">
+
+    <!-- 進行フェーズ -->
+    <div class="block-label">① 進行フェーズ判定（受注可否）</div>
+    <div class="result-grid">
+      <div class="tower">
+        <div class="lamp-row"><div class="lamp blue"   id="lampBlue"></div><span class="lamp-label" id="labBlue">要件定義</span></div>
+        <div class="lamp-row"><div class="lamp yellow" id="lampYellow"></div><span class="lamp-label" id="labYellow">基本設計</span></div>
+        <div class="lamp-row"><div class="lamp orange" id="lampOrange"></div><span class="lamp-label" id="labOrange">実施設計</span></div>
+        <div class="lamp-row"><div class="lamp red"    id="lampRed"></div><span class="lamp-label" id="labRed">制作以降</span></div>
+      </div>
+      <div class="verdict">
+        <div class="phase" id="phaseTxt">PHASE</div>
+        <div class="headline" id="headline">―</div>
+        <div class="action" id="actionTxt"></div>
+        <div class="meta">
+          <div class="chip" id="chipName"><span>対象 </span><b>―</b></div>
+          <div class="chip" id="chipDate"><span>開催 </span><b>―</b></div>
+          <div class="chip" id="chipLeft"><span>残り </span><b>―</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-label">逆算タイムライン（基準日の位置）</div>
+      <div class="bar" id="bar">
+        <div class="seg s-blue"   style="flex:4">要件定義 4w</div>
+        <div class="seg s-yellow" style="flex:4">基本設計 4w</div>
+        <div class="seg s-orange" style="flex:3">実施設計 3w</div>
+        <div class="seg s-red"    style="flex:3">制作 3w</div>
+        <div class="seg s-open"   style="flex:1">開催</div>
+        <div class="marker" id="marker" style="left:0%"></div>
+      </div>
+      <div class="tl-scale"><span>開催14週前</span><span>10週前</span><span>6週前</span><span>3週前</span><span>開催</span></div>
+    </div>
+
+    <!-- 割増フィー -->
+    <div class="section">
+      <div class="block-label">② 割増フィー判定</div>
+      <div class="fee-head">
+        <div class="fee-badge" id="feeBadge">―</div>
+        <div class="fee-line" id="feeLine"></div>
+      </div>
+      <div class="bands">
+        <div class="band b-blue" id="bandStd">
+          <div class="band-pct">0%</div>
+          <div class="band-range" id="rngStd">―</div>
+          <div class="band-desc">標準価格／70日以上前</div>
+        </div>
+        <div class="band b-yellow" id="band10">
+          <div class="band-pct">+10%</div>
+          <div class="band-range" id="rng10">―</div>
+          <div class="band-desc">短期対応フィー／45〜69日前</div>
+        </div>
+        <div class="band b-orange" id="band20">
+          <div class="band-pct">+20%</div>
+          <div class="band-range" id="rng20">―</div>
+          <div class="band-desc">特急対応フィー／31〜44日前</div>
+        </div>
+        <div class="band b-red" id="bandNo">
+          <div class="band-pct">受注不可</div>
+          <div class="band-range" id="rngNo">―</div>
+          <div class="band-desc">原則受注不可／30日以内</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="disclaim" id="disclaim"></p>
+  </div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const status = $('status');
+
+/* 今日(ISO) */
+function todayISO(){const d=new Date();d.setHours(0,0,0,0);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+/* 日付加算・整形 */
+function addDays(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d;}
+function fmt(d){return (d.getMonth()+1)+'/'+d.getDate();}
+
+/* 起動時、基準日に今日をセット */
+$('baseIn').value = todayISO();
+
+/* ① 進行フェーズ */
+function judge(d){
+  if(d < 0)   return {key:'over',phase:'OPENED',head:'開催済み',action:'すでに開催日を過ぎています。対応対象外です。',color:'#5a6166'};
+  if(d <= 21) return {key:'red',phase:'制作期間以降',head:'完全にアウト',action:'制作期間に入っています。新規の対応は不可。開催週に向けて動いている案件です。',color:'var(--red)'};
+  if(d <= 42) return {key:'orange',phase:'実施設計',head:'施工対応のみ',action:'実施設計の期間。依頼内容が確定している前提で、施工対応のみなら対応可。要件が固まっていなければ厳しいです。',color:'var(--orange)'};
+  if(d <= 70) return {key:'yellow',phase:'基本設計',head:'危険信号',action:'基本設計の期間に入っています。指名発注（コンペでない）でないと厳しいタイミングです。',color:'var(--yellow)'};
+  if(d <= 98) return {key:'blue',phase:'要件定義',head:'提案可能',action:'要件定義の期間内。スケジュール的に提案から対応できる理想的なタイミングです。',color:'var(--blue)'};
+  return {key:'blue',phase:'要件定義より前',head:'余裕あり',action:'要件定義の開始（開催14週前）より手前。十分な余裕があり、問題なく提案できます。',color:'var(--green-ok)'};
+}
+const lamps={blue:$('lampBlue'),yellow:$('lampYellow'),orange:$('lampOrange'),red:$('lampRed')};
+const labels={blue:$('labBlue'),yellow:$('labYellow'),orange:$('labOrange'),red:$('labRed')};
+
+/* ② 割増フィー */
+function feeTier(d){
+  if(d>=70) return {key:'std',badge:'標準価格（割増なし）',color:'var(--blue)'};
+  if(d>=45) return {key:'f10',badge:'短期対応フィー ＋10% 割増',color:'var(--yellow)'};
+  if(d>=31) return {key:'f20',badge:'特急対応フィー ＋20% 割増',color:'var(--orange)'};
+  return {key:'no',badge:'原則 受注不可',color:'var(--red)'};
+}
+const bands={std:$('bandStd'),f10:$('band10'),f20:$('band20'),no:$('bandNo')};
+
+function run(){
+  const dateStr=$('dateIn').value;
+  if(!dateStr){ status.textContent='開催初日を入力してください。'; return; }
+  const baseStr=$('baseIn').value || todayISO();
+  const base=new Date(baseStr+'T00:00:00');
+  const open=new Date(dateStr+'T00:00:00');
+  if(isNaN(open)||isNaN(base)){ status.textContent='日付を正しく読み取れませんでした。'; return; }
+  status.textContent='';
+  const diff=Math.round((open-base)/86400000);
+  const name=$('src').value.trim();
+
+  /* --- フェーズ --- */
+  const v=judge(diff);
+  Object.values(lamps).forEach(l=>l.classList.remove('on'));
+  Object.values(labels).forEach(l=>l.classList.remove('act'));
+  if(lamps[v.key]) lamps[v.key].classList.add('on');
+  if(labels[v.key]) labels[v.key].classList.add('act');
+  $('phaseTxt').textContent='PHASE — '+v.phase;
+  $('headline').textContent=v.head; $('headline').style.color=v.color;
+  $('actionTxt').textContent=v.action; $('actionTxt').style.borderColor=v.color;
+  $('chipName').innerHTML='<span>対象 </span><b>'+(name||'—')+'</b>';
+  $('chipDate').innerHTML='<span>開催 </span><b>'+dateStr+'</b>';
+  $('chipLeft').innerHTML='<span>残り </span><b>'+(diff>=0? diff+'日 / 約'+(diff/7).toFixed(1)+'週':'—')+'</b>';
+  let pos=(98-diff)/98*100; pos=Math.max(0,Math.min(100,pos));
+  $('marker').style.left=pos+'%';
+
+  /* --- 割増フィー --- */
+  const f=feeTier(diff);
+  const badge=$('feeBadge');
+  badge.textContent=f.badge; badge.style.color=f.color; badge.style.borderColor=f.color;
+  $('rngStd').textContent='〜 '+fmt(addDays(open,-70));
+  $('rng10').textContent=fmt(addDays(open,-69))+' 〜 '+fmt(addDays(open,-45));
+  $('rng20').textContent=fmt(addDays(open,-44))+' 〜 '+fmt(addDays(open,-31));
+  $('rngNo').textContent=fmt(addDays(open,-30))+' 〜';
+  Object.values(bands).forEach(b=>b.classList.remove('act'));
+  if(bands[f.key]) bands[f.key].classList.add('act');
+  $('feeLine').innerHTML=
+    '割増ライン：<b>'+fmt(addDays(open,-69))+'</b> 以降は割増対象'+
+    '　／　受注可否ライン：<b>'+fmt(addDays(open,-30))+'</b> 以降は原則不可';
+
+  $('disclaim').textContent='進行フェーズ＝要件定義4週→基本設計4週→実施設計3週→制作3週→開催週。割増フィー＝70日以上前0% / 45〜69日前+10% / 31〜44日前+20% / 30日以内は原則受注不可。いずれも判定基準日（'+base.toLocaleDateString('ja-JP')+'）から開催日（'+open.toLocaleDateString('ja-JP')+'）までの残り日数で機械的に判定しています。発注形態や案件規模により前後します。';
+
+  $('result').classList.add('show');
+  $('result').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+$('goBtn').onclick=run;
+$('dateIn').addEventListener('change',run);
+$('baseIn').addEventListener('change',run);
+</script>
+</body>
+</html>
